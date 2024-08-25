@@ -1,21 +1,142 @@
+<template>
+  <PageHeader />
+
+  <main class="flex gap-6 mt-6">
+    <div class="w-[70%] h-pageLayout" ref="mapContainer">
+      <GoogleMap
+        :fullscreen-control="false"
+        :center="{ lat: 39.8283, lng: -98.5795 }"
+        :zoom="4"
+        style="width: 100%; height: 500px"
+        @mapLoaded="onMapLoaded"
+      >
+        <CustomMarker
+          v-for="driver in filteredDrivers"
+          :key="driver.id"
+          :position="{ lat: driver.lat, lng: driver.lng }"
+          @click="onMarkerClick(driver)"
+          :options="{
+            position: { lat: driver.lat, lng: driver.lng }
+          }"
+        >
+          <span class="w-9 h-9 flex items-center justify-center bg-white rounded-full">
+            <IconMapMarker />
+          </span>
+
+          <InfoWindow
+            v-if="selectedDriver && selectedDriver.id === driver.id"
+            class="pt-3 w-56"
+            :options="{ position: { lat: driver.lat, lng: driver.lng } }"
+          >
+            <div class="bg-white flex items-center gap-3" id="content">
+              <div class="bg-amber-500 w-11 h-11 rounded-full"></div>
+              <div id="bodyContent">
+                <h3 class="text-[#101828] text-sm font-semibold">{{ selectedDriver?.name }}</h3>
+                <h3 class="text-[#475467] text-sm font-normal">
+                  Truck No: {{ selectedDriver?.truckNum }}
+                </h3>
+              </div>
+            </div>
+          </InfoWindow>
+        </CustomMarker>
+
+        <CustomControl :key="Number(route.query?.driverId)" position="TOP_CENTER">
+          <div
+            v-if="route.query.driverId"
+            class="flex items-center bg-white border border-[#EAECF0] rounded-lg shadow-md mt-6 mx-auto"
+          >
+            <div class="flex items-center gap-3 py-4 px-3">
+              <span class="rounded w-10 h-10 bg-[#FEB94A] flex items-center justify-center">
+                <IconNavigator />
+              </span>
+
+              <div>
+                <h3 class="text-[#101828] text-sm font-medium">Current location</h3>
+
+                <h3 class="text-[#475467] text-sm font-normal">
+                  {{ filteredDrivers[0].currrentLocation }}
+                </h3>
+              </div>
+            </div>
+
+            <div
+              class="flex items-center gap-3 py-4 px-3 border-l border-r border-l-[#EAECF0] border-r-[#EAECF0]"
+            >
+              <span class="rounded w-10 h-10 bg-[#FEB94A] flex items-center justify-center">
+                <IconFlag />
+              </span>
+
+              <div>
+                <h3 class="text-[#101828] text-sm font-medium">Current location</h3>
+
+                <h3 class="text-[#475467] text-sm font-normal">
+                  {{ filteredDrivers[0].loadStops }}
+                </h3>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 py-4 px-3">
+              <span class="rounded w-10 h-10 bg-[#FEB94A] flex items-center justify-center">
+                <IconFlag />
+              </span>
+
+              <div>
+                <h3 class="text-[#101828] text-sm font-medium">Current location</h3>
+
+                <h3 class="text-[#475467] text-sm font-normal">
+                  {{ filteredDrivers[0].breakStops }}
+                </h3>
+              </div>
+            </div>
+          </div>
+        </CustomControl>
+
+        <CustomControl position="TOP_LEFT">
+          <span
+            v-if="route.query.driverId"
+            @click="goBack"
+            class="cursor-pointer mt-6 ml-6 w-11 h-11 rounded-full bg-white shadow-md flex items-center justify-center"
+          >
+            <IconChevron />
+          </span>
+        </CustomControl>
+      </GoogleMap>
+    </div>
+
+    <div class="flex-1 flex flex-col gap-6">
+      <FormInput name="search" placeholder="Search driver by name" :icon="IconSearch" />
+
+      <div class="flex flex-col gap-2 overflow-y-auto h-full">
+        <DriverCard :drivers="drivers" />
+      </div>
+    </div>
+  </main>
+</template>
+
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 import PageHeader from '@/shared/ui/PageHeader.vue'
 import IconSearch from '../icons/IconSearch.vue'
 import FormInput from '@/shared/ui/FormInput.vue'
-import IconLocation from '../icons/IconLocation.vue'
-import IconCopy from '../icons/IconCopy.vue'
-import IconShare from '../icons/IconShare.vue'
 import moment from 'moment-timezone'
+import { CustomControl, CustomMarker, GoogleMap, InfoWindow } from 'vue3-google-map'
+import IconMapMarker from '../icons/IconMapMarker.vue'
+import DriverCard from './DriverCard.vue'
+import { useRoute, useRouter } from 'vue-router'
+import IconChevron from '../icons/IconChevron.vue'
+import IconNavigator from '../icons/IconNavigator.vue'
+import IconFlag from '../icons/IconFlag.vue'
 
-/// <reference types="@types/google.maps" />
-
-interface DriverDto {
+export interface DriverDto {
   id: number
   name: string
   lat: number
   lng: number
   status: string
+  truckNum: string
+  currrentLocation: string
+  loadStops: string
+  breakStops: string
   startTime: Date
   vehicle: string
 }
@@ -27,6 +148,10 @@ const drivers: DriverDto[] = [
     lat: 40.712776,
     lng: -74.005974,
     status: 'OFF',
+    truckNum: '007',
+    currrentLocation: '2.83 mi NW of Nashville, DE',
+    loadStops: '--',
+    breakStops: '--',
     startTime: new Date(),
     vehicle: 'Volvo'
   },
@@ -36,6 +161,10 @@ const drivers: DriverDto[] = [
     lat: 34.052235,
     lng: -118.243683,
     status: 'OFF',
+    truckNum: '007',
+    currrentLocation: '2.83 mi SW of Chalco, NE',
+    loadStops: '--',
+    breakStops: '--',
     startTime: new Date(),
     vehicle: 'Volvo'
   },
@@ -45,103 +174,48 @@ const drivers: DriverDto[] = [
     lat: 37.774929,
     lng: -122.419418,
     status: 'OFF',
+    truckNum: '007',
+    currrentLocation: '2.83 mi EN of Chicago, DA',
+    loadStops: '--',
+    breakStops: '--',
     startTime: new Date(),
     vehicle: 'Volvo'
   }
 ]
 
-const selectedDrivers = ref<DriverDto[]>([])
+const router = useRouter()
+const route = useRoute()
 
-const mapContainer = ref<HTMLElement | null>(null)
+const selectedDriver = ref<DriverDto | null>(null)
+const filteredDrivers = ref<DriverDto[]>(drivers)
 
-onMounted(() => {
-  const map = new google.maps.Map(mapContainer.value as HTMLElement, {
-    center: { lat: 39.8283, lng: -98.5795 },
-    zoom: 4
-  })
+watch(
+  () => route.query.driverId,
+  (newDriverId) => {
+    if (newDriverId) {
+      filteredDrivers.value = drivers.filter((v) => v.id === Number(newDriverId))
+    } else {
+      filteredDrivers.value = drivers
+    }
+  },
+  { immediate: true }
+)
 
-  drivers.forEach((driver) => {
-    const marker = new google.maps.Marker({
-      position: { lat: driver.lat, lng: driver.lng },
-      map,
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 10,
-        fillColor: '#FFD700',
-        fillOpacity: 1,
-        strokeWeight: 0
-      }
-    })
-
-    marker.addListener('click', () => {
-      const isDriverSelected = selectedDrivers.value.find((d) => d.id === driver.id)
-      if (isDriverSelected) {
-        selectedDrivers.value = selectedDrivers.value.filter((d) => d.id !== driver.id)
-      } else {
-        selectedDrivers.value.push(driver)
-      }
-
-      const infoWindow = new google.maps.InfoWindow({
-        content: `<div><strong>${driver.name}</strong><br>Vehicle: ${driver.vehicle}</div>`
-      })
-      infoWindow.open(map, marker)
-    })
-  })
-})
-</script>
-
-<template>
-  <PageHeader />
-
-  <main class="flex gap-6 mt-6">
-    <div class="w-[70%] h-pageLayout" ref="mapContainer">
-      <!-- Map slot -->
-    </div>
-
-    <div class="flex-1 flex flex-col gap-6">
-      <FormInput name="search" placeholder="Search driver or vehicle" :icon="IconSearch" />
-
-      <div class="flex flex-col gap-2 overflow-y-auto" v-if="selectedDrivers.length">
-        <div
-          v-for="driver in selectedDrivers"
-          :key="driver.id"
-          class="flex flex-col gap-2 border border-[#EAECF0] rounded-lg shadow-md p-4"
-        >
-          <div class="flex items-center justify-between">
-            <h3 class="text-[#101828] text-lg font-semibold">{{ driver?.name }}</h3>
-
-            <span
-              class="flex items-center justify-center border border-[#EAECF0] rounded-xl bg-[#EAECF0] w-12 py-1 text-xs font-medium text-[#344054]"
-            >
-              {{ driver?.status }}
-            </span>
-          </div>
-
-          <div class="flex items-center gap-5">
-            <h3 class="flex items-center gap-2 text-[#475467] text-sm font-normal">
-              <IconLocation />
-
-              {{ driver?.lat + '-' + driver?.lng }}
-            </h3>
-
-            <IconCopy class="cursor-pointer" />
-
-            <IconShare class="cursor-pointer" />
-          </div>
-
-          <h3 class="text-[#475467] text-sm font-medium">
-            Started:
-            {{ moment(driver?.startTime).tz('America/New_York').format('DD-MM-YYYY hh:mm z') }}
-          </h3>
-        </div>
-      </div>
-    </div>
-  </main>
-</template>
-
-<style scoped>
-div[ref='mapContainer'] {
-  height: 500px;
-  width: 100%;
+const onMapLoaded = (map: google.maps.Map) => {
+  // TODO smth
 }
-</style>
+
+const goBack = (): void => {
+  selectedDriver.value = null
+  router.push({ path: route.path })
+}
+
+const onMarkerClick = (driver: DriverDto) => {
+  selectedDriver.value = driver
+  router.push({ path: route.path, query: { driverId: driver.id } })
+}
+
+const formatBreakTime = (startTime: Date) => {
+  return moment(startTime).format('MM-DD-YYYY, hh:mm A')
+}
+</script>

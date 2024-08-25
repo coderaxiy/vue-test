@@ -90,7 +90,7 @@ const closeDrawer = () => {
     </button>
   </aside>
 
-  <navbar
+  <div
     :class="[
       'bg-[#1D2939] overflow-auto text-nowrap flex flex-col gap-4 transition-all duration-300',
       drawerState !== null ? 'w-[300px] px-4 py-9' : 'w-0 p-0'
@@ -104,16 +104,15 @@ const closeDrawer = () => {
 
     <ul>
       <li
-        class="flex items-center gap-2 px-3 py-2 rounded hover:bg-[#344054]"
+        @click="router.push({ path: content.path })"
+        class="flex items-center gap-2 px-3 py-2 rounded hover:bg-[#344054] text-white text-base font-medium cursor-pointer"
         v-for="content in sidebarItems.find((i) => i.id === drawerState)?.contents"
         :key="content.id"
       >
         <IconDot />
 
-        <router-link class="text-white text-base font-medium" :to="content.path">{{
-          content.title
-        }}</router-link>
+        {{ content.title }}
       </li>
     </ul>
-  </navbar>
+  </div>
 </template>

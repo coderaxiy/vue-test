@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import IconRefresh from '@/components/icons/IconRefresh.vue'
-import { defineProps, computed, type VNode, type Component } from 'vue'
+import { computed, type VNode, type Component, ref, getCurrentInstance } from 'vue'
 import { useRoute } from 'vue-router'
 
 interface PropTypes {
@@ -15,6 +15,13 @@ const props = withDefaults(defineProps<PropTypes>(), {
   showRefreshBtn: true
 })
 const router = useRoute()
+
+const loading = ref(false)
+
+const refresh = () => {
+  loading.value = true
+  window.history.go()
+}
 
 const isLeftContents = computed(() => props.leftContents && props.leftContents.length > 0)
 </script>
@@ -35,12 +42,28 @@ const isLeftContents = computed(() => props.leftContents && props.leftContents.l
 
       <button
         v-if="showRefreshBtn"
+        @click="refresh"
         class="w-28 flex items-center justify-center gap-2 text-[#344054] text-sm font-semibold border border-[#D0D5DD] rounded-lg py-2.5"
       >
-        <IconRefresh />
+        <IconRefresh :class="{ spin: loading }" />
 
         Refresh
       </button>
     </div>
   </div>
 </template>
+
+<style scoped>
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+</style>
