@@ -5,7 +5,8 @@ export default {
     extend: {
       height: {
         layout: 'calc(100% - 74px)',
-        pageLayout: 'calc(100vh - 207px)'
+        pageLayout: 'calc(100vh - 207px)',
+        inherit: 'inherit'
       }
     }
   },

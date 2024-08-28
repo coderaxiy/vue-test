@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, type Component } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import DashboardIcon from '../icons/IconDashboard.vue'
 import IconLogs from '../icons/IconLogs.vue'
 import IconReports from '../icons/IconReports.vue'
@@ -58,6 +58,7 @@ const sidebarItems: SiderItem[] = [
 
 const drawerState = ref<null | number>(null)
 const router = useRouter()
+const route = useRoute()
 
 const handleItemClick = (item: SiderItem) => {
   if (item.path) {
@@ -68,10 +69,6 @@ const handleItemClick = (item: SiderItem) => {
   } else {
     drawerState.value = null
   }
-}
-
-const closeDrawer = () => {
-  drawerState.value = null
 }
 </script>
 
@@ -105,7 +102,10 @@ const closeDrawer = () => {
     <ul>
       <li
         @click="router.push({ path: content.path })"
-        class="flex items-center gap-2 px-3 py-2 rounded hover:bg-[#344054] text-white text-base font-medium cursor-pointer"
+        :class="[
+          'flex items-center gap-2 px-3 py-2 rounded hover:bg-[#344054] text-white text-base font-medium cursor-pointer',
+          route.path === content.path ? 'bg-[#344054]' : ''
+        ]"
         v-for="content in sidebarItems.find((i) => i.id === drawerState)?.contents"
         :key="content.id"
       >

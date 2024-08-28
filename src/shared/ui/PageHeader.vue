@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import IconRefresh from '@/components/icons/IconRefresh.vue'
-import { computed, type VNode, type Component, ref, getCurrentInstance } from 'vue'
+import { computed, type VNode, type Component, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 interface PropTypes {
-  leftContents?: Array<VNode | Component>
+  leftContents?: Component
   rightContent?: VNode
   rightContentClassName?: string
   leftContentClassName?: string

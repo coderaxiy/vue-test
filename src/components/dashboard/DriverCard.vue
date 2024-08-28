@@ -32,6 +32,10 @@ const filteredDrivers = computed(() => {
   }
   return props.drivers
 })
+
+const navigateToDriverLogs = (id: number): void => {
+  router.push({ name: 'Driver Logs', params: { id }, query: {} })
+}
 </script>
 
 <template>
@@ -67,9 +71,12 @@ const filteredDrivers = computed(() => {
     </h3>
 
     <div v-if="route.query.driverId == String(driver.id)" class="flex flex-col mt-4">
-      <router-link class="underline text-sm font-medium text-[#175CD3] leading-5" to="/logs">
-        View logs
-      </router-link>
+      <h3
+        class="underline text-sm font-medium text-[#175CD3] leading-5"
+        @click="() => navigateToDriverLogs(driver.id)"
+      >
+        View Driver Logs
+      </h3>
 
       <router-link class="underline mt-6 text-sm font-medium text-[#175CD3] leading-5" to="/">
         Share tracking
